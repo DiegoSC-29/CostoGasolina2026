@@ -5,8 +5,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -15,13 +22,22 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mexiti.costogasolina.ui.theme.CostoGasolinaTheme
+import java.text.NumberFormat
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,10 +58,38 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun CostGasLayout(name: String) {
-    Column {
+    var precioLitroEntrada by remember {
+        mutableStateOf("") }
+    var cantLitroEntrada by remember {
+        mutableStateOf("") }
+    var propinaEntrada by remember {
+        mutableStateOf("") }
+    var incluirPropina by remember {
+        mutableStateOf(false) } // Valor Boleano
+
+
+    val precioLitro = precioLitroEntrada.toDoubleOrNull() ?: 0.0
+    val cantLitros = cantLitroEntrada.toDoubleOrNull() ?: 0.0
+    val propina = propinaEntrada.toDoubleOrNull() ?: 0.0
+    val monto = if (incluirPropina) {
+        calcularMonto(precioLitro, cantLitros, propina)
+    }else{
+        calcularMonto(precioLitro, cantLitros, 0.0)
+    }
+
+
+    Column (
+        modifier = Modifier
+            .fillMaxSize()
+            .background(androidx.compose.ui.graphics.Color.LightGray),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ){
         Text(
             text = stringResource(R.string.calcular_monto),
-
+            fontSize = 25.sp,
+            modifier = Modifier
+                .padding(bottom = 16.dp)
             )
        EditNumberField(
            label = R.string.ingresa_gasolina,
@@ -54,27 +98,66 @@ fun CostGasLayout(name: String) {
                keyboardType = KeyboardType.Number,
                imeAction = ImeAction.Next
            ),
-           value = "10.0",
-           onValueChanged = {}
+           value = precioLitroEntrada,
+           onValueChanged = {
+               precioLitroEntrada = it // Ya no se comporta cómo constante, toma el valor
+           },
+           modifier = Modifier
+           .fillMaxWidth()
        )
-        TextField(
-            value = stringResource(R.string.litros),
-            onValueChange = {}
+        EditNumberField(
+            label = R.string.litros,
+            leadingIcon = R.drawable.gas_station_24,
+            keyboardsOptions = KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Next // Next: Pasa al siguiente campo de texto
+            ),
+            value = cantLitroEntrada,
+            onValueChanged = {
+                cantLitroEntrada = it
+            },
+            modifier = Modifier
+                .fillMaxWidth()
         )
-        TextField(
-            value = stringResource(R.string.propina) ,
-            onValueChange = {}
+        EditNumberField(
+            label = R.string.propina,
+            leadingIcon = R.drawable.propina_24,
+            keyboardsOptions = KeyboardOptions.Default.copy(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done // Next: Pasa al siguiente campo de texto
+            ),
+            value = propinaEntrada,
+            onValueChanged = {
+                propinaEntrada = it
+            },
+            modifier = Modifier
+                .fillMaxWidth()
         )
-        Switch(
-            checked = false,
-            onCheckedChange =  {}
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .padding(top = 16.dp)
+        ){
+            Text(
+                text = stringResource(R.string.incluir_propina),
+                fontSize = 20.sp,
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Switch(
+                checked = incluirPropina,
+                onCheckedChange =  {incluirPropina = it}
+            )
+        }
         Text(
-            text = "Total:  $"
+            text = stringResource(R.string.monto_total,monto),
+            fontSize = 30.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .padding(top = 16.dp)
         )
 
     }
-
 }
 
 @Composable
@@ -87,7 +170,9 @@ fun EditNumberField(
     modifier: Modifier = Modifier
 ){
     TextField(
-        label = { Text(text = stringResource(id = label))  },
+        label = { Text(
+            text = stringResource(id = label),
+            fontSize = 20.sp)  },
         value = value,
         singleLine = true,
         leadingIcon = { Icon(painter = painterResource(id = leadingIcon) , contentDescription = null) },
@@ -104,4 +189,9 @@ fun CostGasLayoutPreview() {
     CostoGasolinaTheme {
         CostGasLayout("Android")
     }
+}
+
+private fun calcularMonto(precio: Double, cantLitros: Double, propina: Double):String{
+    val monto = precio * cantLitros + propina
+    return NumberFormat.getCurrencyInstance().format(monto)
 }
